@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Himawan Dice's Battle Multiplayer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f3f3f3;
+            margin: 0;
+        }
+        .game-container {
+            text-align: center;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 500px;
+            position: relative;
+        }
+        h1 {
+            color: #333;
+        }
+        .status {
+            margin: 20px 0;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+        }
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .health {
+            margin-top: 10px;
+        }
+
+        /* Animasi untuk damage */
+        .damage-animation {
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+            animation: damage-animation 1s ease-in-out;
+            position: absolute;
+        }
+
+        @keyframes damage-animation {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Dadu Animasi */
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .dice {
+            font-size: 70px;
+            font-weight: bold;
+            margin: 0 15px;
+            padding: 20px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            display: inline-block;
+            position: relative;
+        }
+
+        .zoom-in-out {
+            animation: zoom-in-out 0.5s ease-in-out;
+        }
+
+        @keyframes zoom-in-out {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.5);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .character-container {
+            position: relative;
+            text-align: center;
+        }
+
+        /* Karakter pemain */
+        .pemain {
+            width: 80px;
+            height: 80px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: absolute;
+            top: 0;
+            left: 20%;
+        }
+
+        /* Karakter musuh */
+        .musuh {
+            width: 80px;
+            height: 80px;
+            background-color: #FF5722;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: absolute;
+            top: 0;
+            right: 20%;
+        }
+
+        /* Tombol main lagi */
+        #play-again-btn {
+            display: none;
+            margin-top: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Tombol main lagi */
+        #play-again-btn {
+        display: none;
+        margin-top: 3000px;
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Hi.io Dice's Battle Multiplayer</h1>
+        <p>Roll dadu dan lihat siapa yang menang! Jika kamu lebih besar, kamu akan menyerang.</p>
+
+        <div class="status">
+            <div class="health">
+                <span>Pemain 1 HP: <span id="pemain1-hp">100</span></span><br>
+                <span>Pemain 2 HP: <span id="pemain2-hp">100</span></span>
+            </div>
+        </div>
+
+        <!-- Tampilan dadu -->
+        <div class="dice-container">
+            <div id="pemain1-dice" class="dice">🎲</div>
+            <div id="pemain2-dice" class="dice">🎲</div>
+        </div>
+
+        <!-- Tombol roll dadu -->
+        <div>
+            <button class="btn" id="roll-btn-pemain1">Roll Dadu Pemain 1</button>
+            <button class="btn" id="roll-btn-pemain2" disabled>Roll Dadu Pemain 2</button>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <!-- Karakter pemain dan musuh -->
+        <div class="character-container">
+            <div class="pemain" id="pemain1"></div>
+            <div class="musuh" id="pemain2"></div>
+        </div>
+
+        <br>
+        <!-- Tombol untuk bermain lagi -->
+        <div>
+            <button class="btn" id="play-again-btn">Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        // Initial values
+        let pemain1Hp = 100;
+        let pemain2Hp = 100;
+        let currentPlayer = 1; // Track the current player (1 or 2)
+        let pemain1Roll = 0;
+        let pemain2Roll = 0;
+        let lastDamage = 0; // Track the last damage dealt
+
+        // Elements
+        const resultElement = document.getElementById("result");
+        const pemain1HpElement = document.getElementById("pemain1-hp");
+        const pemain2HpElement = document.getElementById("pemain2-hp");
+        const rollButtonPemain1 = document.getElementById("roll-btn-pemain1");
+        const rollButtonPemain2 = document.getElementById("roll-btn-pemain2");
+        const playAgainButton = document.getElementById("play-again-btn");
+        const pemain1Dice = document.getElementById("pemain1-dice");
+        const pemain2Dice = document.getElementById("pemain2-dice");
+        const pemain1Element = document.getElementById("pemain1");
+        const pemain2Element = document.getElementById("pemain2");
+
+        // Function to generate random dice roll between 1 and 6
+        function rollDice() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        // Function to handle damage animation
+        function showDamage(target, damageAmount) {
+            const damageElement = document.createElement("div");
+            damageElement.innerText = `-${damageAmount}`;
+            damageElement.classList.add("damage-animation");
+            target.appendChild(damageElement);
+            setTimeout(() => {
+                damageElement.remove();
+            }, 1000);
+        }
+
+        // Function to handle the battle logic
+        function battle() {
+            // Pemain 1 melempar dadu
+            if (currentPlayer === 1) {
+                pemain1Roll = rollDice();
+                pemain2Roll = rollDice();
+
+                // Update the dice display for the current player with zoom-in animation
+                pemain1Dice.innerText = `🎲 ${pemain1Roll}`;
+                pemain1Dice.classList.add("zoom-in-out");
+                setTimeout(() => pemain1Dice.classList.remove("zoom-in-out"), 500);
+
+                rollButtonPemain1.disabled = true;
+                rollButtonPemain2.disabled = false;
+                resultElement.innerHTML = `Pemain 1 melempar dadu: ${pemain1Roll}`;
+                currentPlayer = 2; // Switch to next player's turn
+
+            } else if (currentPlayer === 2) {
+                // Pemain 2 melempar dadu
+                pemain2Dice.innerText = `🎲 ${pemain2Roll}`;
+                pemain2Dice.classList.add("zoom-in-out");
+                setTimeout(() => pemain2Dice.classList.remove("zoom-in-out"), 500);
+
+                resultElement.innerHTML += `<br>Pemain 2 melempar dadu: ${pemain2Roll}`;
+
+                let damage = 0;
+                const difference = Math.abs(pemain1Roll - pemain2Roll);
+
+                // Calculate damage based on the difference
+                if (difference === 1) {
+                    damage = 7;
+                } else if (difference === 2) {
+                    damage = 10;
+                } else if (difference === 3) {
+                    damage = 12;
+                } else if (difference === 4) {
+                    damage = 15;
+                } else if (difference === 5) {
+                    damage = 20;
+                } else {
+                    damage = 0;
+                }
+
+                // Determine winner based on dice rolls
+                if (pemain1Roll > pemain2Roll) {
+                    resultElement.innerHTML += `<br>Pemain 1 menang | menyerang | Pemain 2 menerima Damage: ${damage}`;
+                    pemain2Hp = Math.max(0, pemain2Hp - damage);
+                    showDamage(pemain2Element, damage);
+                } else if (pemain2Roll > pemain1Roll) {
+                    resultElement.innerHTML += `<br>Pemain 2 menang | menyerang | Pemain 1 menerima Damage: ${damage}`;
+                    pemain1Hp = Math.max(0, pemain1Hp - damage);
+                    showDamage(pemain1Element, damage);
+                } else {
+                    resultElement.innerHTML += `<br>Seri!`;
+                }
+
+                // Update HP display
+                pemain1HpElement.innerText = pemain1Hp;
+                pemain2HpElement.innerText = pemain2Hp;
+
+                // Disable roll buttons after both players have rolled
+                rollButtonPemain1.disabled = true;
+                rollButtonPemain2.disabled = true;
+
+                // Show play again button if a player loses
+                if (pemain1Hp === 0 || pemain2Hp === 0) {
+                    playAgainButton.style.display = "inline-block";
+                }
+
+                currentPlayer = 1; // Reset to player 1 for the next round
+            }
+
+            toggleRollButtons();
+        }
+
+        // Toggles roll buttons
+        function toggleRollButtons() {
+            if (currentPlayer === 1) {
+                rollButtonPemain1.disabled = false;
+                rollButtonPemain2.disabled = true;
+            } else {
+                rollButtonPemain1.disabled = true;
+                rollButtonPemain2.disabled = false;
+            }
+        }
+
+        // Handle play again
+        playAgainButton.addEventListener("click", function () {
+            pemain1Hp = 100;
+            pemain2Hp = 100;
+            pemain1HpElement.innerText = pemain1Hp;
+            pemain2HpElement.innerText = pemain2Hp;
+            resultElement.innerHTML = "";
+            playAgainButton.style.display = "none";
+            toggleRollButtons();
+        });
+
+        // Event listeners
+        rollButtonPemain1.addEventListener("click", battle);
+        rollButtonPemain2.addEventListener("click", battle);
+    </script>
+</body>
+</html>
